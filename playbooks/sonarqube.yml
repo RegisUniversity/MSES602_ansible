@@ -1,0 +1,82 @@
+---
+- hosts: localhost
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: Update repositories
+      apt:
+        force_apt_get: yes
+        upgrade: yes
+        update_cache: yes
+
+    - name: Install Java
+      package: name='openjdk-8-jre' state=latest
+
+    - name: Install Postgres
+      apt:
+        name: postgresql
+        update_cache: yes
+        state: latest
+
+    - name: Add Sonar user to postgres
+      command: createuser sonar
+      become: true
+      become_user: postgres
+      ignore_errors: yes
+
+    - name: Add sonar user password
+      command: psql -c "ALTER USER sonar WITH ENCRYPTED password 'password';"
+      become: true
+      become_user: postgres
+
+    - name: Create database
+      command: psql -c "CREATE DATABASE sonar OWNER sonar;"
+      become: true
+      become_user: postgres
+      ignore_errors: yes
+
+    - name: Add sonar user and install Sonarqube
+      user:
+        name: sonar
+        shell: /bin/bash
+
+    - name: Get SonarQube
+      command: wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-6.7.6.zip
+
+    - name: Unzip 
+      command: unzip sonarqube-6.7.6.zip
+
+    - name: Copy the files 
+      command: cp -r sonarqube-6.7.6 /opt/sonarqube
+
+    - name: Give ownership to the sonar user
+      command: sudo chown -R sonar:sonar /opt/sonarqube
+
+    - name: Add RUN_AS_USER
+      lineinfile: 
+        path: /opt/sonarqube/bin/linux-x86-64/sonar.sh
+        state: presemt
+        line: RUN_AS_USER=sonar
+
+    - name: Add properties
+      blockinfile:
+        path: /opt/sonarqube/conf/sonar.properties
+        block: |
+          sonar.jdbc.username=sonar
+          sonar.jdbc.password=password
+          sonar.jdbc.url=jdbc:postgresql://localhost/sonar
+          sonar.web.host=127.0.0.1
+          sonar.search.javaOpts=-Xms512m  -Xmx512m
+
+    - name: Create systemd service file
+      copy:
+        src: sonar.service
+        dest: /etc/systemd/system/sonar.service
+
+    - name: Start sonarqube
+      command: systemctl start sonar
+
+    - name: enable sonarqube service
+      command: systemctl enable sonar
+
+

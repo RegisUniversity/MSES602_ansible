@@ -1,0 +1,14 @@
+---
+- hosts: localhost
+  become: true
+  tasks:
+    - name: Install Java
+      package: name='openjdk-8-jre' state=latest
+
+  vars:
+    jenkins2_ssh_keys_generate: True
+  
+  roles:
+    - role: lean_delivery.jenkins
+
+
