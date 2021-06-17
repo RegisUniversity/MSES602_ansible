@@ -41,26 +41,32 @@
     - name: Get SonarQube
       get_url: 
         url="https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-6.7.6.zip"
-        dest="/home/osboxes/sonarqube-6.7.6.zip"
+        dest="/tmp/sonarqube-6.7.6.zip"
 
-    - name: Unzip sonarqube  
-      command: unzip -o -u /home/osboxes/sonarqube-6.7.6.zip
+    - name: Unzip sonarqube 
+      ansible.builtin.unarchive:
+        src: /tmp/sonarqube-6.7.6.zip
+        dest: /tmp
+        remote_src: yes
 
     - name: Copy the files 
-      command: cp -r sonarqube-6.7.6 /opt/sonarqube
+      ansible.builtin.copy:
+        src: /tmp/sonarqube-6.7.6 
+        dest: /opt
+        remote_src: yes
 
     - name: Give ownership to the sonar user
-      command: sudo chown -R sonar:sonar /opt/sonarqube
+      command: sudo chown -R sonar:sonar /opt/sonarqube-6.7.6
 
     - name: Add RUN_AS_USER
       lineinfile: 
-        path: /opt/sonarqube/bin/linux-x86-64/sonar.sh
+        path: /opt/sonarqube-6.7.6/bin/linux-x86-64/sonar.sh
         state: present
         line: RUN_AS_USER=sonar
 
     - name: Add properties
       blockinfile:
-        path: /opt/sonarqube/conf/sonar.properties
+        path: /opt/sonarqube-6.7.6/conf/sonar.properties
         block: |
           sonar.jdbc.username=sonar
           sonar.jdbc.password=password
@@ -69,34 +75,51 @@
           sonar.search.javaOpts=-Xms512m  -Xmx512m
 
     - name: Create systemd service file
-      copy:
-        src: sonar.service
-        dest: /etc/systemd/system/sonar.service
+      ansible.builtin.copy:
+        src: sonar
+        dest: /etc/init.d/sonar
+        remote_src: no
+
+    - name: Give ownership to the sonar user
+      command: sudo chown -R root:root /etc/init.d/sonar
+
+    - name: Fix the permissions
+      command: sudo chmod u=rwx,g=rx,o=rx /etc/init.d/sonar
 
     - name: Start sonarqube
-      command: systemctl start sonar
+      ansible.builtin.service:
+        name: sonar
+        state: started
 
     - name: enable sonarqube service
-      command: systemctl enable sonar
+      ansible.builtin.service:
+        name: sonar
+        enabled: yes
 
     - name: get sonar-scanner-cli
       get_url:
         url="https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.5.0.2216-linux.zip"
-        dest="/home/osboxes/sonar-scanner-cli-4.5.0.2216-linux.zip"
+        dest="/tmp/sonar-scanner-cli-4.5.0.2216-linux.zip"
 
     - name: unzip sonar-scanner-cli
-      command: unzip -o -u /home/osboxes/sonar-scanner-cli-4.5.0.2216-linux.zip
+      ansible.builtin.unarchive:
+        src: /tmp/sonar-scanner-cli-4.5.0.2216-linux.zip
+        dest: /tmp
+        remote_src: yes 
     
     - name: Copy sonar-scanner-cli to /opt
-      command: cp -r sonar-scanner-4.5.0.2216-linux /opt/sonar-scanner
+      ansible.builtin.copy:
+        src: /tmp/sonar-scanner-4.5.0.2216-linux
+        dest: /opt/sonar-scanner
+        remote_src: yes
 
     - name: Test for line
-      shell: grep -c "^sonar-scanner" /home/osboxes/.bashrc || true
+      shell: grep -c "^sonar-scanner" ~/.bashrc || true
       register: test_grep
 
     - name: add sonar-scanner to path
       lineinfile:
-        dest: /home/osboxes/.bashrc
+        dest: ~/.bashrc
         line: export PATH=$PATH:/opt/sonar-scanner/bin 
       when: test_grep.stdout == "0"
     
