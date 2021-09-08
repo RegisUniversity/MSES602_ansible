@@ -7,6 +7,7 @@
 
   vars:
     jenkins2_ssh_keys_generate: True
+    jenkins2_smtp_enabled: False
   
   roles:
     - role: lean_delivery.jenkins

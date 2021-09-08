@@ -68,7 +68,7 @@
           sonar.web.host=127.0.0.1
           sonar.search.javaOpts=-Xms512m  -Xmx512m
 
-    - name: Create systemd service file
+    - name: Create service file
       ansible.builtin.copy:
         src: sonar
         dest: /etc/init.d/sonar
@@ -80,6 +80,9 @@
     - name: Fix the permissions
       command: sudo chmod u=rwx,g=rx,o=rx /etc/init.d/sonar
 
+      # If there are issues starting the service you should check the logs at
+      #  /opt/sonarqube-6.7.6/logs
+      #  Also check the log an temp fie permissions
     - name: Start sonarqube
       ansible.builtin.service:
         name: sonar
