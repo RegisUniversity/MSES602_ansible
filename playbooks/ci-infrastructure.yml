@@ -1,15 +1,51 @@
 ---
 - hosts: localhost
   become: true
-  pre_tasks:
-    - name: Install Java
-      package: name='openjdk-8-jre' state=latest
 
-  vars:
-    jenkins2_ssh_keys_generate: True
-    jenkins2_smtp_enabled: False
-  
-  roles:
-    - role: lean_delivery.jenkins
+
+  tasks:
+
+   # This likely is already installed. but ok to check
+    - name: Install Java
+      ansible.builtin.apt:
+        name: 'openjdk-17-jre'
+        state: present
+        update_cache: true
+
+    - name: Add Jenkins key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+
+    - name: append the Debian package repository address to the server’s sources.list
+      ansible.builtin.shell:
+        cmd: echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list
+
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html
+    - name: update the repo and install Jenkins
+      ansible.builtin.apt:
+        name: jenkins
+        update_cache: yes
+
+    - name: Start Jenkins
+      ansible.builtin.shell:
+        cmd: systemctl start jenkins
+      register: start_jenkins
+
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/debug_module.html
+    - name: Show start
+      ansible.builtin.debug:
+        var: start_jenkins
+
+    - name:  Get Jenkins status
+      ansible.builtin.shell:
+        cmd: systemctl status jenkins
+      register: jenkins_status
+
+
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/debug_module.html
+    - name: Show Jenkins status
+      ansible.builtin.debug:
+        var: jenkins_status
 
 
