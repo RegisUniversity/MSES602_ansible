@@ -1,9 +1,28 @@
 ---
-- hosts: localhost
-  become: true
-
+- name: deploy Jenkins
+  hosts: all
 
   tasks:
+
+   # Show the inventory path
+    - name: show env
+      ansible.builtin.debug:
+        var: ansible_inventory_sources
+
+ # Show the inventory limit variable
+    - name: show ansible_limit
+      ansible.builtin.debug:
+        var: ansible_limit
+
+ # Show the play hosts
+    - name: show ansible hosts
+      ansible.builtin.debug:
+        var: ansible_play_hosts_all
+
+# Show the environment
+    - name: Show env
+      ansible.builtin.debug:
+        var: ansible_env  
 
    # This likely is already installed. but ok to check
     - name: Install Java
