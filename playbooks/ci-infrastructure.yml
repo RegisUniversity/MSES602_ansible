@@ -1,6 +1,7 @@
 ---
 - name: deploy Jenkins
   hosts: all
+  become: yes
 
   tasks:
 
