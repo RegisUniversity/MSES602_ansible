@@ -25,17 +25,22 @@
       ansible.builtin.debug:
         var: ansible_env  
 
+    - name: Get Jenkins key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+
+    - name: Add a key from a file on the Ansible server
+      ansible.builtin.apt_key:
+        data: "{{ lookup('ansible.builtin.file', '/usr/share/keyrings/jenkins-keyring.asc') }}"
+        state: present
+
    # This likely is already installed. but ok to check
     - name: Install Java
       ansible.builtin.apt:
         name: 'openjdk-17-jre'
         state: present
         update_cache: true
-
-    - name: Add Jenkins key
-      ansible.builtin.get_url:
-        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
-        dest: /usr/share/keyrings/jenkins-keyring.asc
 
     - name: append the Debian package repository address to the server’s sources.list
       ansible.builtin.shell:
